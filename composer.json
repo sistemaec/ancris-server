@@ -1,0 +1,20 @@
+{
+  "name": "pointerp/pointerp-api",
+    "description": "Api de servicios de la aplicacion pointerp",
+    "authors": [
+        {
+            "name": "Martin Barberan",
+            "email": "jmbarberan@gmail.com"
+        }
+    ],
+  "require": {
+    "php": "^7.4.0",
+    "ext-psr": "*",
+    "ext-mbstring": "*",
+    "ext-json": "*",
+    "ext-curl": "*",
+    "ext-gettext": "*",
+    "phalcon/cphalcon": "^4.1",
+    "ext-phalcon": "*"
+  }
+}

@@ -1,0 +1,25 @@
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ index.php?_url=/$1 [QSA,L]
+</IfModule>
+
+#<IfModule mod_rewrite.c>
+#    RewriteEngine on
+#    RewriteRule  ^$ public/    [L]
+#    RewriteRule  (.*) public/$1 [L]
+#    RewriteEngine On
+#    RewriteCond %{REQUEST_METHOD} OPTIONS
+#    RewriteRule ^(.*)$ $1 [R=200,L]
+#</IfModule>
+
+#<IfModule mod_headers.c>
+#    Header always set Access-Control-Allow-Origin "*"
+#    Header always set Access-Control-Allow-Headers "Content-Type, Accept-Language, X-Access-Token, X-Client-Id, X-Secret-Id, X-GR-Token"
+#    Header always set Access-Control-Allow-Methods "GET,POST,OPTIONS,PUT,PATCH,DELETE"
+#    Header always set Access-Control-Expose-Headers "X-Access-Token, X-Refresh-Token,X-Access-Token-Expire, X-Pagination-Current-Page, X-Pagination-Page-Count,X-Pagination-Per-Page, X-Pagination-Total-Count, X-Payload"
+#    Header always set Access-Control-Allow-Credentials "true"
+#</IfModule>
