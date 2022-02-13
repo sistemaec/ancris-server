@@ -647,7 +647,7 @@ class MedicosController extends ControllerBase  {
         $med->telefonos = $datos->telefonos;
         $med->email = $datos->email;
         $med->usuario_id = $datos->usuario_id;
-        $med->empresa_id = $datos->empresa_id;
+        $med->empresa_id = 1;
         if($med->update()) {
           $ret->res = true;
           $ret->cid = $datos->id;
