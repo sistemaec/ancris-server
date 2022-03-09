@@ -205,14 +205,15 @@ class VentasController extends ControllerBase  {
             $con = Consultas::findFirstById($ven->especie);
             if ($con != false) {
               $con->factura_id = $ven->id;
-              if(!$con->update()) {
+              $con->update()
+              /*if(!$con->update()) {
                 foreach ($ven->getMessages() as $m) {
                   $msj .= $m . "\n";
                 }
-              }
+              }*/
             }
           }  
-          $this->response->setStatusCode(201, 'Created ' . $msj);
+          //$this->response->setStatusCode(201, 'Created ' . $msj);
         } else {
           $msj = "No se pudo crear el nuevo registro: " . "\n";
           foreach ($ven->getMessages() as $m) {
