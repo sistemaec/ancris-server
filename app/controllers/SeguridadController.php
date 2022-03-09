@@ -76,6 +76,29 @@ class SeguridadController extends ControllerBase
         $this->response->setContent(json_encode($res));
         $this->response->send();
     }
+    
+    public function cambiarEstadoAction() {
+        $id = $this->dispatcher->getParam('id');
+        $est = $this->dispatcher->getParam('estado');
+        $usr = Usuarios::findFirstById($id);
+        $res = 'No se ha podido actualizar la contraseña';
+        $this->response->setStatusCode(404, 'Not found');
+        if ($usr != null) {
+            $usr->estado = $est;
+            $res = $usr->save();
+            if ($res != false) {
+                $res = 'Usuario actualizado exitósamente';
+                $this->response->setStatusCode(200, 'Ok');
+            } else {
+                $res = 'El usuario no se pudo actualizar';
+            }
+        } else {
+            $res = 'El usuario no existe';
+        }
+        $this->response->setContentType('application/json', 'UTF-8');
+        $this->response->setContent(json_encode($res));
+        $this->response->send();
+    }
 
     public function usuarioGuardarAction() {
         $datos = $this->request->getJsonRawBody();
