@@ -34,6 +34,11 @@ class SeguridadRutas extends \Phalcon\Mvc\Router\Group
             'controller' => $controlador,
             'action'     => 'cambiarClave',
         ]);
+        
+        $this->addPut('/usuario/{id}/modificar/estado/{estado}', [
+            'controller' => $controlador,
+            'action'     => 'cambiarEstado',
+        ]);
 
         $this->addPost('/usuarios/guardar', [
             'controller' => $controlador,
