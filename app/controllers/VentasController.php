@@ -206,6 +206,7 @@ class VentasController extends ControllerBase  {
             $con = Consultas::findFirstById($ven->especie);
             if ($con != false) {
               $con->factura_id = $ven->id;
+              $con->update();
             }
           }
         } else {
