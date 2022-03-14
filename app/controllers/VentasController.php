@@ -200,20 +200,14 @@ class VentasController extends ControllerBase  {
               }
             }
           }
+          $this->response->setStatusCode(200, 'Ok');
           // Registrar factura en consulta
           if ($ven->especie > 0) {
             $con = Consultas::findFirstById($ven->especie);
             if ($con != false) {
               $con->factura_id = $ven->id;
-              $con->update()
-              /*if(!$con->update()) {
-                foreach ($ven->getMessages() as $m) {
-                  $msj .= $m . "\n";
-                }
-              }*/
             }
-          }  
-          //$this->response->setStatusCode(201, 'Created ' . $msj);
+          }
         } else {
           $msj = "No se pudo crear el nuevo registro: " . "\n";
           foreach ($ven->getMessages() as $m) {

@@ -10,6 +10,7 @@ use Pointerp\Modelos\Maestros\Clientes;
 use Pointerp\Modelos\Medicos\MdTablasRegistros;
 use Pointerp\Modelos\Maestros\Registros;
 use Pointerp\Modelos\Medicos\Medicos;
+use Pointerp\Modelos\Medicos\MedicosEspecialidades;
 use Pointerp\Modelos\Medicos\Especialidades;
 use Pointerp\Modelos\Medicos\Servicios;
 use Pointerp\Modelos\Medicos\PlantillaInformes;
@@ -600,6 +601,42 @@ class MedicosController extends ControllerBase  {
     $this->response->send();
   }
 
+  public function medicosPorEspecialidadEstadoAction() {
+    $this->view->disable();
+    $est = $this->dispatcher->getParam('estado');
+    $esp = $this->dispatcher->getParam('especialidad');
+    $meds = [];
+    $res = MedicosEspecialidades::find([
+      'conditions' => 'especialidad_id = :esp:',
+      'bind' => ['esp' => $esp]
+    ]);
+      // Actualizar estado
+    if ($res->count() > 0) {
+      $this->response->setStatusCode(404, 'Not found');
+      $idsMedicos = [];
+      foreach($res as $med) {
+        array_push($idsMedicos, $med->medico_id);
+      }
+      if (count($idsMedicos) > 0) {
+        $this->response->setStatusCode(200, 'Ok');
+        $csvIdsMedicos = implode(', ', $idsMedicos);
+        $filtroEst = "";
+        if ($est == 0) {
+          $filtroEst = "estado = 0 AND ";
+        }
+        $meds = Medicos::find([
+          'conditions' => /*$filtroEst .*/ 'id in (' . $csvIdsMedicos . ')',
+          'order' => 'nombres'
+        ]);
+      }
+    } else {
+      $this->response->setStatusCode(404, 'Not found');
+    }
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($meds));
+    $this->response->send();
+  }
+
   public function medicoPorCedulaAction() {
     $ced = $this->dispatcher->getParam('ced');
     $ret = (object) [
@@ -649,9 +686,33 @@ class MedicosController extends ControllerBase  {
         $med->usuario_id = $datos->usuario_id;
         $med->empresa_id = 1;
         if($med->update()) {
+          $ret->msj = "Se actualizo correctamente los datos del Medico";
+          $idsNoEliminados = [];
+          foreach ($datos->relEspecialidades as $esp) {
+            if ($esp->id > 0) {
+              array_push($idsNoEliminados, $esp->id);
+            } else {
+              // crear especialidades agregadas
+              $ins = new MedicosEspecialidades();
+              $ins->medico_id = $esp->medico_id;
+              $ins->especialidad_id = $esp->especialidad_id;
+              $ins->descripcion = "";
+              if ($ins->create()) {
+                array_push($idsNoEliminados, $ins->id);
+              }
+            }
+          }
+          if (count($idsNoEliminados) > 0) {
+            $lista = implode(', ', $idsNoEliminados);
+            $di = Di::getDefault();
+            $qry = new Query('DELETE FROM 
+              Pointerp\Modelos\Medicos\MedicosEspecialidades 
+              WHERE medico_id = ' . $med->id . ' AND id not in (' . $lista . ')' , $di 
+            );
+            $res = $qry->execute();
+          }
           $ret->res = true;
           $ret->cid = $datos->id;
-          $ret->msj = "Se actualizo correctamente los datos del Medico";
           $this->response->setStatusCode(200, 'Ok');
         } else {
           $this->response->setStatusCode(500, 'Error');
@@ -679,6 +740,13 @@ class MedicosController extends ControllerBase  {
         $med->empresa_id = $datos->empresa_id;
         $med->estado = 0;
         if ($med->create()) {
+          foreach ($datos->relEspecialidades as $esp) {
+            $ins = new MedicosEspecialidades();
+            $ins->medico_id = $esp->medico_id;
+            $ins->especialidad_id = $esp->especialidad_id;
+            $ins->descripcion = "";
+            $ins->create();
+          }
           $ret->res = true;
           $ret->cid = $med->id;
           $ret->msj = "Se registro correctamente el nuevo Profesional";

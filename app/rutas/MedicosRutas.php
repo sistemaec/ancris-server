@@ -77,6 +77,10 @@ class MedicosRutas extends \Phalcon\Mvc\Router\Group
       'controller' => $controlador,
       'action'     => 'medicosPorEstado',
     ]);
+    $this->addGet('/medicos/especialidad/{especialidad}/estado/{estado}', [
+      'controller' => $controlador,
+      'action'     => 'medicosPorEspecialidadEstado',
+    ]);
     $this->addGet('/medicos/cedula/{ced}', [
       'controller' => $controlador,
       'action'     => 'medicoPorCedula',
