@@ -1102,10 +1102,10 @@ class MedicosController extends ControllerBase  {
         }
       } else {
         // Traer numero de cita
-        $num = Consultas::maximum([
+        /*$num = Consultas::maximum([
           'column' => 'numero',
           'conditions' => "fecha = '" . $datos->fecha . "' AND medico_id = " . $datos->medico_id
-        ]) ?? 0;
+        ]) ?? 0;*/
         // Crear paciente si no esta creado
         $pacienteId = $datos->paciente_id;
         if ($pacienteId <= 0) {
@@ -1132,7 +1132,7 @@ class MedicosController extends ControllerBase  {
         $con->examenes = '';
         $con->laboratorio = '';
         $con->antecedentes = '';
-        $con->numero = $num + 1;
+        $con->numero = $datos->numero;
         $con->estado = 0;
         if ($con->create()) {
           $ret->res = true;
