@@ -568,7 +568,7 @@ class MedicosController extends ControllerBase  {
   public function medicoPorUsuarioAction() {
     $id = $this->dispatcher->getParam('id');
     $res = Medicos::find([
-      'conditions' => 'usuario_id = :id:',
+      'conditions' => 'usuario_id = :id: and estado = 0',
       'bind' => ['id' => $id]
     ]);
     if ($res->count() > 0) {
