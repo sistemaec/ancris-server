@@ -151,7 +151,7 @@ class SeguridadController extends ControllerBase
         $cred = $this->request->getJsonRawBody();
         $di = Di::getDefault();
         $phql = 'SELECT * FROM Pointerp\Modelos\Usuarios 
-            WHERE codigo = "%s" AND clave = "%s"';
+            WHERE codigo = "%s" AND clave = "%s" AND estado = 0';
         $qry = new Query(sprintf($phql, $cred->usr, $cred->cla), $di);
         $rws = $qry->execute();
         $this->response->setStatusCode(401, 'Unauthorized');
