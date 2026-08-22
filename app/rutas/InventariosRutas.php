@@ -53,7 +53,7 @@ class InventariosRutas extends \Phalcon\Mvc\Router\Group
       'controller' => $controlador,
       'action'     => 'movimientoPorId',
     ]);
-    $this->addGet('/movimientos/bodega/{bodega}/clase/{clase}/estado/{estado}/desde/{desde}/hasta/{hasta}/tipo/{tipo}/filtro/{filtro}/buscar', [
+    $this->addGet('/movimientos/bodega/{bodega}/clase/{clase}/estado/{estado}/desde/{desde}/hasta/{hasta}/tipobusca/{tipobusca}/tipo/{tipo}/filtro/{filtro}/buscar', [
       'controller' => $controlador,
       'action'     => 'movimientosBuscar',
     ]);

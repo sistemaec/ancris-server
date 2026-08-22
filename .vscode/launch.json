@@ -17,6 +17,34 @@
       "program": "${file}",
       "cwd": "${fileDirname}",
       "port": 9000
+    },
+    {
+      "name": "Net web server launch",
+      "type": "php",
+      "request": "launch",
+      "runtimeArgs": [
+        "-dxdebug.mode=debug",
+        "-dxdebug.start_with_request=yes",
+        "-S",
+        "localhost:9099",
+        "-t",
+        "public"
+      ],
+      "program": "",
+      "cwd": "${workspaceFolder}",
+      "port": 9090,
+      "serverReadyAction": {
+        "pattern": "Development Server \\(http://localhost:([0-9]+)\\) started",
+        "uriFormat": "http://localhost:%s",
+        //"action": "openExternally"
+      },
+      "env": {
+        "DB_HOST":"localhost",
+        "DB_NAME":"ecuamedica",
+        "DB_USER":"root",
+        "DB_PASS":"jmbg",
+        "DB_PORT":"3306",
+      }
     }
   ]
 }

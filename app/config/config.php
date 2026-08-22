@@ -15,7 +15,7 @@ return new \Phalcon\Config([
         'password'    => getenv('DB_PASS'),
         'dbname'      => getenv('DB_NAME'),
         'charset'     => 'utf8',
-        'port'        => 3306
+        'port'        => getenv('DB_PORT')
     ],
     'application' => [
         'appDir'         => APP_PATH . '/',

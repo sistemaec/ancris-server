@@ -328,7 +328,8 @@ class InventariosController extends ControllerBase  {
   public function movimientosBuscarAction() {
     $this->view->disable();
     $bod = $this->dispatcher->getParam('bodega');
-    $tipoBusca = $this->dispatcher->getParam('tipo');
+    $tipoBusca = $this->dispatcher->getParam('tipobusca');
+    $tipo = $this->dispatcher->getParam('tipo');
     $filtro = $this->dispatcher->getParam('filtro');
     $estado = $this->dispatcher->getParam('estado');
     $clase = $this->dispatcher->getParam('clase');
