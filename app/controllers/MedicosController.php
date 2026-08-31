@@ -15,6 +15,7 @@ use Pointerp\Modelos\Medicos\Especialidades;
 use Pointerp\Modelos\Medicos\Servicios;
 use Pointerp\Modelos\Medicos\PlantillaInformes;
 use Pointerp\Modelos\Medicos\PlantillaCampos;
+use Pointerp\Modelos\Medicos\PlantillaValores;
 use Pointerp\Modelos\Medicos\RecetaItems;
 use Pointerp\Modelos\Medicos\Examenes;
 
@@ -684,6 +685,7 @@ class MedicosController extends ControllerBase  {
         $med->telefonos = $datos->telefonos;
         $med->email = $datos->email;
         $med->usuario_id = $datos->usuario_id;
+        $med->tarifa = isset($datos->tarifa) ? (float) $datos->tarifa : 0;
         $med->empresa_id = 1;
         if($med->update()) {
           $ret->msj = "Se actualizo correctamente los datos del Medico";
@@ -737,6 +739,7 @@ class MedicosController extends ControllerBase  {
         $med->telefonos = $datos->telefonos;
         $med->email = $datos->email;
         $med->usuario_id = $datos->usuario_id;
+        $med->tarifa = isset($datos->tarifa) ? (float) $datos->tarifa : 0;
         $med->empresa_id = $datos->empresa_id;
         $med->estado = 0;
         if ($med->create()) {
@@ -1018,6 +1021,59 @@ class MedicosController extends ControllerBase  {
     $this->response->send();
   }
 
+  // Guarda los valores de las plantillas de informes de una consulta.
+  // Solo toca las plantillas presentes en $lista: cada una se borra y se reinserta
+  // acotada a su (consulta_id, plantilla_id). Las ausentes se conservan intactas.
+  // Devuelve la cantidad de inserciones fallidas (0 si todo salio bien).
+  private function guardarPlantillaValores($consultaId, $lista) {
+    $fallos = 0;
+    if ($lista == null || !is_array($lista)) {
+      return $fallos;
+    }
+    foreach ($lista as $pl) {
+      if (!isset($pl->plantilla_id) || $pl->plantilla_id <= 0) {
+        continue;
+      }
+      $previas = PlantillaValores::find([
+        'conditions' => 'consulta_id = :consulta: AND plantilla_id = :plantilla:',
+        'bind' => [ 'consulta' => $consultaId, 'plantilla' => $pl->plantilla_id ]
+      ]);
+      foreach ($previas as $fila) {
+        $fila->delete();
+      }
+      // Contenido del editor: una unica fila con codigo TEMPLATE, en la columna texto.
+      $ins = new PlantillaValores();
+      $ins->plantilla_id = $pl->plantilla_id;
+      $ins->consulta_id = $consultaId;
+      $ins->campo_codigo = 'TEMPLATE';
+      $ins->texto = isset($pl->texto) ? $pl->texto : '';
+      $ins->valor = null;
+      $ins->estado = 0;
+      if (!$ins->create()) {
+        $fallos++;
+      }
+      if (isset($pl->valores) && is_array($pl->valores)) {
+        foreach ($pl->valores as $v) {
+          if (!isset($v->campo_codigo) || $v->campo_codigo == '') {
+            continue;
+          }
+          $ival = new PlantillaValores();
+          $ival->plantilla_id = $pl->plantilla_id;
+          $ival->consulta_id = $consultaId;
+          // mb_substr y no substr: cortar por bytes partiria un caracter acentuado.
+          $ival->campo_codigo = mb_substr($v->campo_codigo, 0, 45);
+          $ival->texto = null;
+          $ival->valor = isset($v->valor) ? mb_substr($v->valor, 0, 200) : '';
+          $ival->estado = 0;
+          if (!$ival->create()) {
+            $fallos++;
+          }
+        }
+      }
+    }
+    return $fallos;
+  }
+
   public function consultaGuardarAction() {
     try {
       $datos = $this->request->getJsonRawBody();
@@ -1071,12 +1127,11 @@ class MedicosController extends ControllerBase  {
               $ins->dosis = $i->dosis;
               $ins->create();
             }
-            // Eliminar los items anteriores en la receta por consulta
+            // Eliminar los examenes anteriores de la consulta.
+            // Antes se borraba con RecetaItems::findFirstById($exi->id), que es otro
+            // modelo: borraba lineas de receta de otras consultas cuyo id coincidia.
             foreach ($con->relExamenes as $exi) {
-              $enc = RecetaItems::findFirstById($exi->id); 
-              if ($enc != false) {
-                $enc->delete();
-              }
+              $exi->delete();
             };
             // Guardar examenes
             foreach ($datos->examenesSel as $i) {
@@ -1086,9 +1141,13 @@ class MedicosController extends ControllerBase  {
               $exi->seleccionados = $i->seleccionados;
               $exi->create();
             }
+            $fallos = $this->guardarPlantillaValores($con->id, isset($datos->plantillaValores) ? $datos->plantillaValores : null);
             $ret->res = true;
             $ret->cid = $con->id;
             $ret->msj = "Se actualizo correctamente los datos de la consulta";
+            if ($fallos > 0) {
+              $ret->msj .= " (no se pudieron guardar " . $fallos . " valores de plantillas)";
+            }
             $this->response->setStatusCode(200, 'Ok');
           } else {
             $msj = "No se puede actualizar los datos: " . "\n";
@@ -1135,11 +1194,15 @@ class MedicosController extends ControllerBase  {
         $con->numero = $datos->numero;
         $con->estado = 0;
         if ($con->create()) {
+          $fallos = $this->guardarPlantillaValores($con->id, isset($datos->plantillaValores) ? $datos->plantillaValores : null);
           $ret->res = true;
           $ret->cid = $con->id;
           $ret->num = $con->numero;
           $ret->msj = "Se registro correctamente la consulta";
-          $this->response->setStatusCode(201, 'Created');  
+          if ($fallos > 0) {
+            $ret->msj .= " (no se pudieron guardar " . $fallos . " valores de plantillas)";
+          }
+          $this->response->setStatusCode(201, 'Created');
         } else {
           $msj = "No se pudo crear la nueva consulta: " . "\n";
           foreach ($con->getMessages() as $m) {
@@ -1372,11 +1435,14 @@ class MedicosController extends ControllerBase  {
     $this->response->send();
   }
 
-  // SERVICIOS MEDICOS
+  // ESPECIALIDADES
 
   public function especialidadesTodasAction() {
     $this->view->disable();
-    $res = Especialidades::find();
+    $res = Especialidades::find([
+      'conditions' => 'estado = 0',
+      'order' => 'descripcion'
+    ]);
 
     if ($res->count() > 0) {
         $this->response->setStatusCode(200, 'Ok');
@@ -1387,7 +1453,164 @@ class MedicosController extends ControllerBase  {
     $this->response->setContent(json_encode($res));
     $this->response->send();
   }
- 
+
+  public function especialidadesBuscarAction() {
+    $this->view->disable();
+    $tipoBusca = $this->dispatcher->getParam('tipo');
+    $filtro = $this->dispatcher->getParam('filtro');
+    $estado = $this->dispatcher->getParam('estado');
+    $filtro = str_replace('%20', ' ', $filtro);
+    if ($tipoBusca == 0) {
+      // Comenzando por
+      $filtro .= '%';
+    } else {
+      // Conteniendo
+      $filtroSP = str_replace('  ', ' ',trim($filtro));
+      $filtro = '%' . str_replace(' ' , '%',$filtroSP) . '%';
+    }
+    $condicion = "";
+    if ($estado == 0) {
+      $condicion = ' AND estado = 0';
+    }
+    $res = Especialidades::find([
+        'conditions' => 'UPPER(descripcion) LIKE UPPER(:fil:)' . $condicion,
+        'bind' => ['fil' => $filtro],
+        'order' => 'descripcion'
+    ]);
+
+    if ($res->count() > 0) {
+        $this->response->setStatusCode(200, 'Ok');
+    } else {
+        $this->response->setStatusCode(404, 'Not found');
+    }
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($res));
+    $this->response->send();
+  }
+
+  public function especialidadRegistradaAction() {
+    $cod = $this->dispatcher->getParam('cod');
+    $des = $this->dispatcher->getParam('des');
+    $id = $this->dispatcher->getParam('id');
+    $des = str_replace('%20', ' ', $des);
+    $rows = Especialidades::find([
+      'conditions' => 'codigo = :cod: OR descripcion = :des:',
+      'bind' => [ 'des' => $des, 'cod' => $cod ]
+    ]);
+    $existe = false;
+    $res = 'Se puede registrar los nuevos datos';
+    if ($rows->count() > 0) {
+      $existe = true;
+      $res = 'Estos datos ya estan registrados busquelo como ' . $rows[0]->descripcion;
+      $this->response->setStatusCode(406, 'Not Acceptable');
+    }
+    if (!$existe) {
+      $this->response->setStatusCode(200, 'Ok');
+    }
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($res));
+    $this->response->send();
+  }
+
+  public function especialidadGuardarAction() {
+    try {
+      $datos = $this->request->getJsonRawBody();
+      $ret = (object) [
+        'res' => false,
+        'cid' => $datos->id,
+        'msj' => 'Los datos no se pudieron procesar'
+      ];
+      $this->response->setStatusCode(406, 'Not Acceptable');
+      if ($datos->id > 0) {
+        // Traer especialidad por id
+        $esp = Especialidades::findFirstById($datos->id);
+        $esp->codigo = $datos->codigo;
+        $esp->descripcion = $datos->descripcion;
+        $esp->estado = $datos->estado;
+        if($esp->update()) {
+          $ret->res = true;
+          $ret->cid = $datos->id;
+          $ret->msj = "Se actualizo correctamente los datos de la especialidad";
+          $this->response->setStatusCode(200, 'Ok');
+        } else {
+          $msj = "No se puede actualizar los datos: " . "\n";
+          foreach ($esp->getMessages() as $m) {
+            $msj .= $m . "\n";
+          }
+          $ret->res = false;
+          $ret->cid = $datos->id;
+          $ret->msj = $msj;
+        }
+      } else {
+        // Crear especialidad nueva
+        $cod = isset($datos->codigo) ? trim($datos->codigo) : '';
+        if (strlen($cod) <= 0) {
+          // Crear codigo autogenerado
+          $cod = Especialidades::maximum([
+            'column' => 'codigo'
+          ]) ?? 0;
+          $num = intval($cod);
+          $num += 1;
+          $cod = str_pad($num, 3, "0", STR_PAD_LEFT);
+        }
+        $esp = new Especialidades();
+        $esp->codigo = $cod;
+        $esp->descripcion = $datos->descripcion;
+        $esp->estado = 0;
+        if ($esp->create()) {
+          $ret->res = true;
+          $ret->cid = $esp->id;
+          $ret->msj = "Se registro correctamente la nueva especialidad";
+          $this->response->setStatusCode(201, 'Created');  
+        } else {
+          $msj = "No se pudo crear la nueva especialidad: " . "\n";
+          foreach ($esp->getMessages() as $m) {
+            $msj .= $m . "\n";
+          }
+          $ret->res = false;
+          $ret->cid = 0;
+          $ret->msj = $msj;
+        }
+      }
+    } catch (Exception $e) {
+      $this->response->setStatusCode(500, 'Error');
+      $ret->res = false;
+      $ret->cid = 0;
+      $ret->msj = $e->getMessage();
+    }
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($ret));
+    $this->response->send();
+  }
+
+  public function especialidadModificarEstadoAction() {
+    $id = $this->dispatcher->getParam('id');
+    $est = $this->dispatcher->getParam('estado');
+    $esp = Especialidades::findFirstById($id);
+    if ($esp != null) {
+      $esp->estado = $est;
+      if($esp->update()) {
+        $msj = "La operacion se ejecuto exitosamente";
+        $this->response->setStatusCode(200, 'Ok');
+      } else {
+        $this->response->setStatusCode(404, 'Error');
+        $msj = "No se puede actualizar los datos: " . "\n";
+        foreach ($esp->getMessages() as $m) {
+          $msj .= $m . "\n";
+        }
+      }
+    } else {
+      $msj = "No se encontro la especialidad";
+      $this->response->setStatusCode(404, 'Not found');
+    }
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($msj));
+    $this->response->send();
+  }
+
+  // SERVICIOS MEDICOS
+
+  
   public function serviciosPorEspecialAction() {
     $this->view->disable();
     $esp = $this->dispatcher->getParam('id');
@@ -1617,10 +1840,26 @@ class MedicosController extends ControllerBase  {
     $this->response->send(); 
   }
 
+  public function plantillaValoresPorConsultaAction() {
+    $this->view->disable();
+    $consultaId = $this->dispatcher->getParam('id');
+    $plantillaId = $this->dispatcher->getParam('plantilla');
+    $res = PlantillaValores::find([
+      'conditions' => 'consulta_id = :consulta: AND plantilla_id = :plantilla:',
+      'bind' => [ 'consulta' => $consultaId, 'plantilla' => $plantillaId ]
+    ]);
+    // Siempre 200: un conjunto vacio no es un error, es una consulta sin informe.
+    $this->response->setStatusCode(200, 'Ok');
+    $this->response->setContentType('application/json', 'UTF-8');
+    $this->response->setContent(json_encode($res));
+    $this->response->send();
+  }
+
   public function plantillasPorEstadoAction() {
     $this->view->disable();
     $id = $this->dispatcher->getParam('id');
-    $res = PlantillaInformes::find();
+    // Sin ORDER BY el orden no esta garantizado y el frontend las lee por posicion.
+    $res = PlantillaInformes::find([ 'order' => 'id' ]);
     if ($res != null) {
         $this->response->setStatusCode(200, 'Ok');
     } else {

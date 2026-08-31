@@ -8,6 +8,7 @@ use Pointerp\Rutas\AjustesRutas;
 use Pointerp\Rutas\InventariosRutas;
 use Pointerp\Rutas\MaestrosRutas;
 use Pointerp\Rutas\VentasRutas;
+use Pointerp\Rutas\KpisRutas;
 use Pointerp\Rutas\CorsRutas;
 
 $router = $di->getRouter();
@@ -20,6 +21,7 @@ $router->mount(new AjustesRutas());
 $router->mount(new InventariosRutas());
 $router->mount(new MaestrosRutas());
 $router->mount(new VentasRutas());
+$router->mount(new KpisRutas());
 
 $router->addGet('/prueba/{texto}', [
   'controller' => 'seguridad',

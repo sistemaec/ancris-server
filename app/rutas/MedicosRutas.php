@@ -155,6 +155,22 @@ class MedicosRutas extends \Phalcon\Mvc\Router\Group
       'controller' => $controlador,
       'action'     => 'especialidadesTodas',
     ]);
+    $this->addGet('/especialidades/buscar/tipo/{tipo}/estado/{estado}/filtro/{filtro}', [
+      'controller' => $controlador,
+      'action'     => 'especialidadesBuscar',
+    ]);
+    $this->addGet('/especialidades/{id}/existe/{cod}/descripcion/{des}', [
+      'controller' => $controlador,
+      'action'     => 'especialidadRegistrada',
+    ]);
+    $this->addPost('/especialidades/guardar', [
+      'controller' => $controlador,
+      'action'     => 'especialidadGuardar',
+    ]);
+    $this->addPut('/especialidades/{id}/modificar/estado/{estado}', [
+      'controller' => $controlador,
+      'action'     => 'especialidadModificarEstado',
+    ]);
     $this->addGet('/servicios/{id}', [
       'controller' => $controlador,
       'action'     => 'servicioPorId',
@@ -195,6 +211,10 @@ class MedicosRutas extends \Phalcon\Mvc\Router\Group
     $this->addGet('/plantillas/{id}/campos', [
       'controller' => $controlador,
       'action'     => 'plantillaCamposPorId',
+    ]);
+    $this->addGet('/consultas/{id}/plantilla/{plantilla}/valores', [
+      'controller' => $controlador,
+      'action'     => 'plantillaValoresPorConsulta',
     ]);
     $this->addGet('/plantillas/estado/{estado}', [
       'controller' => $controlador,
