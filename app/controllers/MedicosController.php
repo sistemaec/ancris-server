@@ -1103,7 +1103,7 @@ class MedicosController extends ControllerBase  {
           $con->proxima = $datos->proxima;
           $con->laboratorio = $datos->laboratorio;
           $con->antecedentes = $datos->antecedentes;
-          $con->numero = $datos->numero;
+          $con->hora = (string) $datos->hora;
           $con->examenes = $datos->examenes;
           $con->estado = $datos->estado;
           if($con->update()) {
@@ -1160,11 +1160,12 @@ class MedicosController extends ControllerBase  {
           }
         }
       } else {
-        // Traer numero de cita
-        /*$num = Consultas::maximum([
-          'column' => 'numero',
-          'conditions' => "fecha = '" . $datos->fecha . "' AND medico_id = " . $datos->medico_id
-        ]) ?? 0;*/
+        // Traer numero de cita: secuencia por medico y dia
+        $num = Consultas::maximum([
+          'column'     => 'numero',
+          'conditions' => 'fecha = :f: AND medico_id = :m:',
+          'bind'       => ['f' => $datos->fecha, 'm' => $datos->medico_id]
+        ]) ?? 0;
         // Crear paciente si no esta creado
         $pacienteId = $datos->paciente_id;
         if ($pacienteId <= 0) {
@@ -1191,7 +1192,8 @@ class MedicosController extends ControllerBase  {
         $con->examenes = '';
         $con->laboratorio = '';
         $con->antecedentes = '';
-        $con->numero = $datos->numero;
+        $con->numero = ((int) $num) + 1;
+        $con->hora = (string) $datos->hora;
         $con->estado = 0;
         if ($con->create()) {
           $fallos = $this->guardarPlantillaValores($con->id, isset($datos->plantillaValores) ? $datos->plantillaValores : null);
